@@ -31,7 +31,7 @@ resource "aws_route_table" "prod-route-table" {
 
   route {
     ipv6_cidr_block        = "::/0"
-    egress_only_gateway_id = aws_internet_gateway.gw.id
+    gateway_id = aws_internet_gateway.gw.id
   }
 
   tags = {
@@ -70,13 +70,15 @@ resource "aws_security_group" "allow_web" {
     to_port          = 443
     protocol         = "tcp"
     cidr_blocks      = ["0.0.0.0/0"]
-    
+  }
   ingress {
     description      = "SSH"
     from_port        = 22
     to_port          = 22
     protocol         = "tcp"
     cidr_blocks      = ["0.0.0.0/0"]
+  }
+    
 
   ingress {
     description      = "HTTP"
@@ -84,8 +86,6 @@ resource "aws_security_group" "allow_web" {
     to_port          = 80
     protocol         = "tcp"
     cidr_blocks      = ["0.0.0.0/0"]
-
-
   }
 
   egress {
@@ -116,7 +116,7 @@ resource "aws_eip" "one" {
   domain                    = "vpc"
   network_interface         = aws_network_interface.web-server-nic.id
   associate_with_private_ip = "10.0.1.50"
-  depends_on = aws_internet_gateway.gw
+  depends_on = [aws_internet_gateway.gw]
 }
 # 9. Create ubuntu server and install/enable apache2
 
@@ -125,20 +125,18 @@ resource "aws_instance" "web-server-instance" {
     instance_type = "t2.micro"
     availability_zone = "us-east-1a"
     key_name = "Bobokeypair"
+    }
 
     network_interface {
         device_index = 0
         network_interface_id = aws_network_interface.web-server-nic.id
     }
 
-    user_data = <<-EOF
+    user_data = 
                 #!/bin/bash
-                sudo apt update -y 
-                sudo apt install apache2 -y
-                sudo systemctl start apache2
-                sudo bash -c 'echo my very first terraform deployed web server with apache > /var/www/html/index.html'
-                EOF
-    tags = {
-        name = "web-server"
-    } 
-}
+                apt update -y
+                apt install apache 2.4.46 -y
+                systemctl start apache 2.4.46
+                "echo my very first terraform deployed web server with apache > /var/www/html/index.html"
+                chown apache:root /var/www/html/rds.conf.php
+    
